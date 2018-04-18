@@ -1,5 +1,6 @@
 import aiohttp
 import asyncio
+import requests
 from collections import namedtuple
 import os
 
@@ -27,14 +28,31 @@ class Randomduk:
                 return response(message=body['message'], url=body['url'])
             else:
                 raise CouldNotGetDuckError(r.status)
+    def random_no_async(self, *args, **kwargs):
+        content_type = kwargs.get('type', None)
+        if content_type is None:
+            query = ''
+        elif content_type is 'gif':
+            query = '?type=gif'
+        elif content_type is 'jpg':
+            query = '?type=jpg'
+        else:
+            query = '?type={}'.format(type)
+        r = requests.get('https://random-d.uk/api/v1/random{}'.format(query))
+        if r.status_code == 200:
+            body = r.json()
+            response = namedtuple('Response', ['message', 'url'])
+            return response(message=body['message'], url=body['url'])
+        else:
+            raise CouldNotGetDuckError(r.status_code)
 
-    async def getimg(self, number):
+    def getimg(self, number):
         return 'https://random-d.uk/api/v1/images/{}.jpg'.format(number)
 
-    async def getgif(self, number):
+    def getgif(self, number):
         return 'https://random-d.uk/api/v1/gifs/{}.gif'.format(number)
 
-    async def httpduck(self, number):
+    def httpduck(self, number):
         return 'https://random-d.uk/api/v1/http/{}.jpg'.format(number)
 
     async def upload(self, file):
@@ -47,6 +65,16 @@ class Randomduk:
                 result = await r.json()
                 message = result['message']
                 raise CouldNotUploadError(r.status, message)
+            
+    def upload_no_async(self, file):
+        sending_file = open(file, 'rb')
+        r = requests.post('https://random-d.uk/api/v1/add', data={"data": sending_file})
+        if r.status == 200:
+            return 'File uploaded!'
+        else:
+            result = r.json()
+            message = result['message']
+            raise CouldNotUploadError(r.status, message)
 
 
 class CouldNotGetDuckError(Exception):
